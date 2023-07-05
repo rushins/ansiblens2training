@@ -1,0 +1,65 @@
+- hosts: all
+ 
+  tasks:
+  - name : Install unzip package
+    yum: name=unzip state=present update_cache=true
+
+  tasks:
+  - name : Install the latest Nginx package
+    yum: name=nginx state=latest update_cache=true
+
+  tasks:
+  - name : Install multiple packages
+    yum: name={{ item }} state=latest update_cache=true
+    loop: [git, wget, unzip, curl]
+
+tasks:
+  - name : Update all packages
+    yum: name=* state=latest update_cache=true
+
+tasks:
+  - name : Install Remi package from .rpm file
+    yum: name=https://rpms.remirepo.net/enterprise/remi-release-8.rpm state=present update_cache=true
+
+ tasks:
+  - name : Uninstall nginx package
+    yum: name=nginx state=absent
+
+ tasks:
+  - name: Capture the Output
+    yum: name=tree state=present update_cache=true
+    register: yum_output
+  - debug: var=yum_output
+
+tasks:
+  - name: Gather Package facts
+    package_facts: manager=auto
+ 
+  - name : Validate whether Nginx is installed or not.
+    debug: msg="Nginx is installed"
+    when: "'nginx' in ansible_facts.packages"
+ 
+  - name : Validate whether Nginx is installed or not.
+    debug: msg="Nginx is not installed"
+    when: "'nginx' not in ansible_facts.packages"
+
+ tasks:
+  - name : install elasticsearch rpm key
+    rpm_key: key=https://artifacts.elastic.co/GPG-KEY-elasticsearch state=present
+ 
+  - name: install elasticsearch 7.x rpm repository
+    yum_repository: name=elasticsearch-7.x state=present description="Elasticsearch repository for 7.x packages" baseurl=https://artifacts.elastic.co/packages/7.x/yum gpgcheck=true gpgkey=https://artifacts.elastic.co/GPG-KEY-elasticsearch
+    register: yum_repository_output
+ 
+  - debug: var=yum_repository_output
+
+tasks:
+  - name : Remove Elasticsearch Repository
+    yum_repository: name=elasticsearch-7.x state=absent
+    register: yum_repository_output
+ 
+  - name: yum-clean-metadata
+    command: yum clean metadata
+    args:
+      warn: no
+    when: yum_repository_output.changed
